@@ -1,1 +1,1 @@
-Djikstra's Graph Algorithm in Haskell
+Dijkstra's Graph Algorithm in Haskell
