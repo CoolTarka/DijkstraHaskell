@@ -7,20 +7,29 @@ import Data.List
 
 data No = No {
   nome::String,
-  vizinhos::[(Char,Float)],
+  vizinhos::[(String,Float)],
   cor::Char
-} deriving(Show)
+} deriving(Show, Read)
 
 main = do
   file <- openFile "testes/teste0.in" ReadMode
   -- entrada <- hGetContents file
-  entrada <- hGetLine file
+  entrada <- hGetContents file
   let
-    final = reads $ entrada
-  putStrLn final
+    pre =  getlist $ lines entrada
+    path = concat [z | z <- pre, length z == 1]
+    graph =  [z | z <- pre, length z == 3]
+    -- final = getype pre
+  print graph
 
 -- retorna lista de valores de vizinhos e distancias
 getViz (No _ vizinhos _) = vizinhos
 
--- tst [] = []
-tst ('a  b d':xs) = read x
+-- getlist::[String] -> [[String]]
+getlist [] = []
+getlist (x:xs) =
+  words x : getlist xs
+
+-- node_list::[[String]] -> [No]
+-- node_list ((no:viz:val:[]):xs) =
+--   if
