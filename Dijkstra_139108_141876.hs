@@ -25,8 +25,10 @@ main = do
     -- nodes tem todos os nos do grafo
     nodes = get_nodes (map head graph) 0
     tst = pre_graph nodes graph
-    tst2 = head tst
-  print tst2
+    tst2 = fst $ head $ head $ head tst
+    tst3 = head $ tail $ head tst
+    tst4 =  create_record tst
+  print tst4
 
 -- retorna lista de valores de vizinhos e distancias
 getViz (No _ vizinhos _) = vizinhos
@@ -37,7 +39,14 @@ getlist [] = []
 getlist (x:xs) =
   words x : getlist xs
 
--- tentantiva de organizar valores pra por no grafo
+create_record [] = []
+create_record lista =
+    No node vizinhos 'C' : create_record (tail lista)
+    where
+      node = fst ( head ( head ( head lista)))
+      vizinhos = head ( tail ( head lista))
+
+-- Organiza os valores pra por no grafo
 pre_graph [] _ = []
 pre_graph (x:xs) lista =
   [[(x,0)]:create_no x lista:[]] ++ pre_graph xs lista
@@ -63,6 +72,6 @@ get_nodes (x:xs) val
 
 -- #########################################################################
 -- funcao de um broder mutante da internet, nao funciona aqui
--- myGroup :: (Eq a, Ord a) => [(a, b)] -> [(a, [b])]
--- myGroup = map (\l -> (fst . head $ l, map snd l)) . groupBy ((==) `on` fst)
---           . sortBy (comparing fst)
+  -- myGroup :: (Eq a, Ord a) => [(a, b)] -> [(a, [b])]
+  -- myGroup = map (\l -> (fst . head $ l, map snd l)) . groupBy ((==) `on` fst)
+  --           . sortBy (comparing fst)
