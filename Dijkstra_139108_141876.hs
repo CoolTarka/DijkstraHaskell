@@ -105,7 +105,7 @@ get_record (x:xs) node =
 
 
 -- passa todos os vizinhos de um no para update_paths onde eles sao registrados no dicionarios e o no é pitado de branco
-assign_neighbors:: [(String, Float)] -> String -> [(Float, String, String, Char)] -> [(Float, String, String, Char)]
+assign_neighbors:: [(String, Float)] -> (Float, String, String, Char) -> [(Float, String, String, Char)] -> [(Float, String, String, Char)]
 assign_neighbors [] _ dic = dic
 assign_neighbors (x:xs) nome dic =
   assign_neighbors xs nome novo_dic
@@ -116,15 +116,24 @@ assign_neighbors (x:xs) nome dic =
 
 
 -- atualiza o valor de distancia no dicionario de nós e pinta de branco o nó de que partiu a atualização
-update_paths::[(Float, String, String, Char)] -> String -> Float -> String -> [(Float, String, String, Char)]
+update_paths::[(Float, String, String, Char)] -> String -> Float -> (Float, String, String, Char) -> [(Float, String, String, Char)]
 update_paths [] _ _ _ = []
-update_paths (x:xs) node new_dist from
-  | snd4 x == node = (new_dist, snd4 x, from, qth4 x) : update_paths xs node new_dist from
-  | snd4 x == from && qth4 x /= 'B' = (fst4 x, snd4 x, trd4 x, 'B') : update_paths xs node new_dist from
-  | otherwise =  x:update_paths xs node new_dist from
+update_paths (x:xs) node dist_actualNode from
+  | actual_node == node && current_dist /= -1.0 =
+      if chk_dist < current_dist then (chk_dist, snd4 x, from_node, qth4 x) : update_paths xs node dist_actualNode from
+      else (current_dist, snd4 x, from_node, qth4 x) : update_paths xs node dist_actualNode from
+  | actual_node == node = (chk_dist, snd4 x, from_node, qth4 x) : update_paths xs node dist_actualNode from
+  | actual_node == from_node && qth4 x /= 'B' = (fst4 x, snd4 x, trd4 x, 'B') : update_paths xs node dist_actualNode from
+  | otherwise =  x:update_paths xs node dist_actualNode from
+  where
+    from_node = snd4 from
+    pre_dist = fst4 from
+    actual_node = snd4 x
+    chk_dist = if pre_dist == -1 then  dist_actualNode else dist_actualNode + pre_dist
+    current_dist = fst4 x
 
 -- pega o proximo nó para o algoritomo analisar os vizinhos
 -- ou seja, procura o menor valor no dicionario que não seja Branco
 next_node::[(Float, String, String, Char)] -> (Float, String, String, Char)
 next_node dic =
-  minimum $ filter (\ (_, _, _, x) -> x /= 'B') dic
+  minimum $ filter (\ (y, _, _, x) -> x /= 'B' && y /= -1) dic
