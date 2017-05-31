@@ -13,10 +13,15 @@ data No = No {
   cor::Char
 } deriving(Show, Read)
 
+-- instance Show No
+--   where
+--     show (No nome vizinhos cor) = "no: " ++ nome ++ " vizinhos: "++ " cor: " ++ [cor] ++ "\n"
+
 main = do
   file <- openFile "testes/teste0.in" ReadMode
   entrada <- hGetContents file
   let
+    pre1 =  lines entrada
     pre =  getlist $ lines entrada
     -- path tem o caminho a ser procurado pelo codigo
     path = concat [z | z <- pre, length z == 1]
@@ -32,10 +37,11 @@ main = do
     -- graph é uma lista do grafo na estrutura No (acima)
     graph =  create_record list_graph
     final = dijkstra (head path) graph False nodes
-  print final
+  print nodes
+  print graph
 
 -- pega a entrada no formato ["a b 4"] e passa pra ["a","b","4"]
--- getlist::[String] -> [[String]]
+getlist::[String] -> [[String]]
 getlist [] = []
 getlist (x:xs) =
   words x : getlist xs
@@ -100,19 +106,26 @@ get_record (x:xs) node =
   else get_record xs node
 
 
--- futura função que vai coordenar as outras
+get_quad::[(Float, String, String, Char)] -> String -> (Float, String, String, Char)
+get_quad [] _ = (-2.0, "justNothin","",'N')
+get_quad (x:xs) node =
+  if node == snd4 x then x else get_quad xs node
+
+-- função que coordena as outras
 dijkstra::String -> [No] -> Bool -> [(Float, String, String, Char)] -> [(Float, String, String, Char)]
 dijkstra [] _ _ control = control
 dijkstra node_init graph flag control =
-  if flag == False then dijkstra node_init graph True $ assign_neighbors neighbors node control
-  else dijkstra new_node graph True $ assign_neighbors neighbors node control
+  if flag == False then dijkstra node_init graph True new_neighbors
+  else dijkstra new_node graph True new_neighbors
   where
     node = get_quad control node_init
     neighbors = getViz $ get_record graph node_init
     new_node = if check_node /= (-2,"","",'N') then snd4 check_node else []
     check_node = next_node control
+    new_neighbors = assign_neighbors neighbors node control
 
 -- passa todos os vizinhos de um no para update_paths onde eles sao registrados no "dicionario" e o no é pintado de branco
+-- Lista de todos os vizinhos do no atual -> no atual no formato de quadrupla -> lista de todas quadruplas -> lista de quad atualizada
 assign_neighbors:: [(String, Float)] -> (Float, String, String, Char) -> [(Float, String, String, Char)] -> [(Float, String, String, Char)]
 assign_neighbors [] _ dic = dic
 assign_neighbors (x:xs) nome dic =
@@ -122,21 +135,17 @@ assign_neighbors (x:xs) nome dic =
     dist = snd x
     novo_dic = update_paths dic no dist nome
 
-get_quad::[(Float, String, String, Char)] -> String -> (Float, String, String, Char)
-get_quad [] _ = (-2.0, "justNothin","",'N')
-get_quad (x:xs) node =
-  if node == snd4 x then x else get_quad xs node
-
 -- O CORAÇÃO DE DIJKSTRA
--- atualiza o valor de distancia no dicionario de nós e pinta de branco o nó de que partiu a atualização
+-- atualiza o valor de distancia no "dicionario" de nós e pinta de branco o nó de que partiu a atualização
+-- lista de todas quadruplas -> nome de um vizinho do no atual -> distancia do no atual até esse vizinho -> quadrupla do no atual
 update_paths::[(Float, String, String, Char)] -> String -> Float -> (Float, String, String, Char) -> [(Float, String, String, Char)]
 update_paths [] _ _ _ = []
 update_paths (x:xs) neighbor dist_neighbor from
   | current_node == neighbor && current_dist /= -1.0 =
       if chk_dist < current_dist then (chk_dist, current_node, from_node, qth4 x) : update_paths xs neighbor dist_neighbor from
       else (current_dist, current_node, from_node, qth4 x) : update_paths xs neighbor dist_neighbor from
-  | current_node == neighbor = (chk_dist, current_node, from_node, qth4 x) : update_paths xs neighbor dist_neighbor from
   | current_node == from_node && qth4 x /= 'B' = (current_dist, current_node, trd4 x, 'B') : update_paths xs neighbor dist_neighbor from
+  | current_node == neighbor = (chk_dist, current_node, from_node, qth4 x) : update_paths xs neighbor dist_neighbor from
   | otherwise =  x:update_paths xs neighbor dist_neighbor from
   where
     pre_dist = fst4 from
@@ -145,6 +154,7 @@ update_paths (x:xs) neighbor dist_neighbor from
     current_node = snd4 x
     chk_dist = if pre_dist == -1 then  dist_neighbor else dist_neighbor + pre_dist
 -- TESTE
+-- let real = [(-1.0,"a","nd",'C'),(-1.0,"b","nd",'C'),(-1.0,"c","nd",'C'),(-1.0,"d","nd",'C'),(-1.0,"e","nd",'C'),(-1.0,"f","nd",'C'),(-1.0,"g","nd",'C'),(-1.0,"h","nd",'C')]
 -- let ent2 = [("c",1.2),("d",7.9),("f",2.3),("h",0.1)]
 -- let ex2 = [(-1.0,"a","nd",'B'),(4.5,"b","a",'C'),(7.8,"c","a",'C'),(-1.0,"d","nd",'C'),(-1.0,"e","nd",'C'),(-1.0,"f","nd",'C'),(3.2,"h","a",'C')]
 -- assign_neighbors ent2 (4.5,"b","a",'C') ex2
