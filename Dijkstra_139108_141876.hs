@@ -24,14 +24,15 @@ main = do
 -- ######## a partir daqui até graph são todos passos intermediarios até a lista de estruturas No ######
     -- graph_esp tem todos as especificaçoes de no e seus vizinhos
     graph_esp = [z | z <- pre, length z == 3]
-    -- nodes é um dicionario de triplas no formato (valor da distancia, no, no anterior)
+    -- nodes é um dicionario de quadruplas no formato (valor da distancia, no, no anterior, cor)
     -- (essa função vai cagar no codigo se a entrada não tiver listado a entrada de cada nó junto)
     nodes = get_nodes (map head graph_esp) 0
     -- list_graph mosta uma lista no formato [[[("no1",0)],[vizinhos de "no1"]],[[("no2",0)],[vizinhos de "no2"]]...]
     list_graph = pre_graph nodes graph_esp
     -- graph é uma lista do grafo na estrutura No (acima)
     graph =  create_record list_graph
-  print nodes
+    final = dijkstra (head path) graph False nodes
+  print final
 
 -- pega a entrada no formato ["a b 4"] e passa pra ["a","b","4"]
 -- getlist::[String] -> [[String]]
@@ -100,40 +101,64 @@ get_record (x:xs) node =
 
 
 -- futura função que vai coordenar as outras
--- dijkstra::[String] -> [No] ->
--- dijkstra path graph =
+dijkstra::String -> [No] -> Bool -> [(Float, String, String, Char)] -> [(Float, String, String, Char)]
+dijkstra [] _ _ control = control
+dijkstra node_init graph flag control =
+  if flag == False then dijkstra node_init graph True $ assign_neighbors neighbors node control
+  else dijkstra new_node graph True $ assign_neighbors neighbors node control
+  where
+    node = get_quad control node_init
+    neighbors = getViz $ get_record graph node_init
+    new_node = if check_node /= (-2,"","",'N') then snd4 check_node else []
+    check_node = next_node control
 
-
--- passa todos os vizinhos de um no para update_paths onde eles sao registrados no dicionarios e o no é pitado de branco
+-- passa todos os vizinhos de um no para update_paths onde eles sao registrados no "dicionario" e o no é pintado de branco
 assign_neighbors:: [(String, Float)] -> (Float, String, String, Char) -> [(Float, String, String, Char)] -> [(Float, String, String, Char)]
 assign_neighbors [] _ dic = dic
 assign_neighbors (x:xs) nome dic =
-  assign_neighbors xs nome novo_dic
+    assign_neighbors xs nome novo_dic
   where
     no = fst x
     dist = snd x
     novo_dic = update_paths dic no dist nome
 
+get_quad::[(Float, String, String, Char)] -> String -> (Float, String, String, Char)
+get_quad [] _ = (-2.0, "justNothin","",'N')
+get_quad (x:xs) node =
+  if node == snd4 x then x else get_quad xs node
 
+-- O CORAÇÃO DE DIJKSTRA
 -- atualiza o valor de distancia no dicionario de nós e pinta de branco o nó de que partiu a atualização
 update_paths::[(Float, String, String, Char)] -> String -> Float -> (Float, String, String, Char) -> [(Float, String, String, Char)]
 update_paths [] _ _ _ = []
-update_paths (x:xs) node dist_actualNode from
-  | actual_node == node && current_dist /= -1.0 =
-      if chk_dist < current_dist then (chk_dist, snd4 x, from_node, qth4 x) : update_paths xs node dist_actualNode from
-      else (current_dist, snd4 x, from_node, qth4 x) : update_paths xs node dist_actualNode from
-  | actual_node == node = (chk_dist, snd4 x, from_node, qth4 x) : update_paths xs node dist_actualNode from
-  | actual_node == from_node && qth4 x /= 'B' = (fst4 x, snd4 x, trd4 x, 'B') : update_paths xs node dist_actualNode from
-  | otherwise =  x:update_paths xs node dist_actualNode from
+update_paths (x:xs) neighbor dist_neighbor from
+  | current_node == neighbor && current_dist /= -1.0 =
+      if chk_dist < current_dist then (chk_dist, current_node, from_node, qth4 x) : update_paths xs neighbor dist_neighbor from
+      else (current_dist, current_node, from_node, qth4 x) : update_paths xs neighbor dist_neighbor from
+  | current_node == neighbor = (chk_dist, current_node, from_node, qth4 x) : update_paths xs neighbor dist_neighbor from
+  | current_node == from_node && qth4 x /= 'B' = (current_dist, current_node, trd4 x, 'B') : update_paths xs neighbor dist_neighbor from
+  | otherwise =  x:update_paths xs neighbor dist_neighbor from
   where
-    from_node = snd4 from
     pre_dist = fst4 from
-    actual_node = snd4 x
-    chk_dist = if pre_dist == -1 then  dist_actualNode else dist_actualNode + pre_dist
+    from_node = snd4 from
     current_dist = fst4 x
+    current_node = snd4 x
+    chk_dist = if pre_dist == -1 then  dist_neighbor else dist_neighbor + pre_dist
+-- TESTE
+-- let ent2 = [("c",1.2),("d",7.9),("f",2.3),("h",0.1)]
+-- let ex2 = [(-1.0,"a","nd",'B'),(4.5,"b","a",'C'),(7.8,"c","a",'C'),(-1.0,"d","nd",'C'),(-1.0,"e","nd",'C'),(-1.0,"f","nd",'C'),(3.2,"h","a",'C')]
+-- assign_neighbors ent2 (4.5,"b","a",'C') ex2
+
 
 -- pega o proximo nó para o algoritomo analisar os vizinhos
 -- ou seja, procura o menor valor no dicionario que não seja Branco
 next_node::[(Float, String, String, Char)] -> (Float, String, String, Char)
-next_node dic =
-  minimum $ filter (\ (y, _, _, x) -> x /= 'B' && y /= -1) dic
+next_node control =
+  if is_whited control == True then (-2,"","",'N')
+  else minimum $ filter (\ (y, _, _, x) -> x /= 'B' && y /= -1) control
+
+is_whited::[(Float,String, String, Char)] -> Bool
+is_whited [] = True
+is_whited (x:xs) =
+  if color /= 'B' then False else is_whited xs
+  where color = qth4 x
