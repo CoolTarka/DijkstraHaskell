@@ -13,10 +13,6 @@ data No = No {
   cor::Char
 } deriving(Show, Read)
 
--- instance Show No
---   where
---     show (No nome vizinhos cor) = "no: " ++ nome ++ " vizinhos: "++ " cor: " ++ [cor] ++ "\n"
-
 main = do
   file <- openFile "testes/teste0.in" ReadMode
   entrada <- hGetContents file
@@ -35,16 +31,15 @@ main = do
     dest = nub $ map head $ map tail graph_esp
     list_nodes = nub $ origem ++ dest
     -- nodes = get_nodes (map head graph_esp) 0
-    nodes = new_get_nodes list_nodes
+    nodes = new_get_nodes list_nodes $ head path
     -- list_graph mosta uma lista no formato [[[("no1",0)],[vizinhos de "no1"]],[[("no2",0)],[vizinhos de "no2"]]...]
     list_graph = pre_graph nodes graph_esp
     -- graph é uma lista do grafo na estrutura No (acima)
     graph =  create_record list_graph
     -- final é a aplicação do djikstra, lol
     final = dijkstra (head path) graph nodes
-  print graph
-  print dest
-  print pre
+  print final
+  print [('a',0),('b',1),('c',2),('d',3),('e',4),('f',5),('g',6),('h',7)]
 
 -- pega a entrada no formato ["a b 4"] e passa pra ["a","b","4"]
 getlist::[String] -> [[String]]
@@ -72,25 +67,16 @@ create_no node ((no:viz:val:[]):xs) =
   if node == no then (viz, read val :: Float): create_no node xs
   else create_no node xs
 
--- SUBSTITUIDA
--- get_nodes [] _ = []
--- get_nodes (x:xs) val
---    | null y = []
---    | x == y && val == 0 = (-1.0, y, "nd", 'C') : get_nodes xs 1
---    | x /= y = (-1.0, y, "nd", 'C') : get_nodes xs 1
---    | otherwise  = get_nodes xs 1
---    where
---      y = if null xs then [] else head xs
-
 -- pega todos elementos iguais consecutivos e mantem apenas um
 -- criando um dicicionario pra ser usado mais tarde
-new_get_nodes::[String] -> [(Float, String, String, Char)]
-new_get_nodes (x:[]) = (-1.0, x, "nd", 'C'):[]
-new_get_nodes (x:xs) =
-  (-1.0, x, "nd", 'C'):new_get_nodes xs
--- EXEMPLO
--- get_nodes ["a","a","a","a","b","b","b","c","d","d","d","d","d","e"] 0
--- > [("a","nd",'C'),(-1,"b","nd",'C'),(-1,"c","nd",'C),(-1,"d","nd",'C),(-1,"e","nd",'C')]
+new_get_nodes::[String] -> String -> [(Float, String, String, Char)]
+new_get_nodes (x:[]) begin_node =
+  if begin_node == x then (0.0, x, "nd", 'C'):[]
+  else (1/0, x, "nd", 'C'):[]
+new_get_nodes (x:xs) begin_node =
+  if begin_node == x then (0.0, x, "nd", 'C'):new_get_nodes xs begin_node
+  else (1/0, x, "nd", 'C'):new_get_nodes xs begin_node
+
 
 -- ######################### FUNCOES DIJKSTRA ############################
 
@@ -110,6 +96,7 @@ fst4 (x, _, _, _) = x
 snd4 (_, x, _, _) = x
 trd4 (_, _, x, _) = x
 qth4 (_, _, _, x) = x
+
 
 -- retorna a struct de um no especifico (record é struct em haskell)
 get_record:: [No] -> String -> No
@@ -155,24 +142,22 @@ assign_neighbors (x:xs) node control =
 update_paths::[(Float, String, String, Char)] -> String -> Float -> (Float, String, String, Char) -> [(Float, String, String, Char)]
 update_paths [] _ _ _ = []
 update_paths (x:xs) neighbor dist_neighbor from
-  | current_node == neighbor && current_dist /= -1.0 =
+  | current_node == neighbor =
       if chk_dist < current_dist then (chk_dist, current_node, from_node, current_color) : update_paths xs neighbor dist_neighbor from
-      else (current_dist, current_node, from_node, current_color) : update_paths xs neighbor dist_neighbor from
-  | current_node == from_node && current_color /= 'B' = (current_dist, current_node, trd4 x, 'B') : update_paths xs neighbor dist_neighbor from
-  | current_node == neighbor = (chk_dist, current_node, from_node, current_color) : update_paths xs neighbor dist_neighbor from
+      else (current_dist, current_node, current_orign, current_color) : update_paths xs neighbor dist_neighbor from
+  | current_node == from_node && current_color /= 'B' = (current_dist, current_node, current_orign, 'B') : update_paths xs neighbor dist_neighbor from
+  -- | current_node == neighbor = (chk_dist, current_node, from_node, current_color) : update_paths xs neighbor dist_neighbor from
   | otherwise =  x:update_paths xs neighbor dist_neighbor from
   where
+    current_orign = trd4 x
     current_color = qth4 x
     pre_dist = fst4 from
     from_node = snd4 from
     current_dist = fst4 x
     current_node = snd4 x
-    chk_dist = if pre_dist == -1 then  dist_neighbor else dist_neighbor + pre_dist
--- TESTE
--- let real = [(-1.0,"a","nd",'C'),(-1.0,"b","nd",'C'),(-1.0,"c","nd",'C'),(-1.0,"d","nd",'C'),(-1.0,"e","nd",'C'),(-1.0,"f","nd",'C'),(-1.0,"g","nd",'C'),(-1.0,"h","nd",'C')]
--- let ent2 = [("c",1.2),("d",7.9),("f",2.3),("h",0.1)]
--- let ex2 = [(-1.0,"a","nd",'B'),(4.5,"b","a",'C'),(7.8,"c","a",'C'),(-1.0,"d","nd",'C'),(-1.0,"e","nd",'C'),(-1.0,"f","nd",'C'),(3.2,"h","a",'C')]
--- assign_neighbors ent2 (4.5,"b","a",'C') ex2
+    -- chk_dist = if pre_dist == 1/0 then  dist_neighbor else dist_neighbor + pre_dist
+    chk_dist = dist_neighbor + pre_dist
+
 
 
 -- pega o proximo nó para o algoritomo analisar os vizinhos
@@ -180,7 +165,7 @@ update_paths (x:xs) neighbor dist_neighbor from
 next_node::[(Float, String, String, Char)] -> (Float, String, String, Char)
 next_node control =
   if is_whited control == True then (-2,"","",'N')
-  else minimum $ filter (\ (y, _, _, x) -> x /= 'B' && y /= -1) control
+  else minimum $ filter (\ (y, _, _, x) -> x /= 'B') control
 
 -- checa se todos os nos do "dicionario" são brancos, evitando exception que o minimum gera
 is_whited::[(Float,String, String, Char)] -> Bool
