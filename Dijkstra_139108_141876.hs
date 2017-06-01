@@ -6,11 +6,12 @@ import System.IO
 import Data.List
 import Data.Function
 import Data.Ord
+Import Control.Monad
 
 data No = No {
   nome::String,
-  vizinhos::[(String,Float)],
-  cor::Char
+  vizinhos::[(String,Float)]
+  -- cor::Char
 } deriving(Show, Read)
 
 main = do
@@ -21,25 +22,40 @@ main = do
     -- pre =  getlist $ lines entrada
     -- path tem o caminho a ser procurado pelo codigo
     path = concat [z | z <- pre, length z == 1]
-
+    origem = head path
+    destino = head $ tail path
 -- ######## a partir daqui até graph são todos passos intermediarios até termos a lista de estruturas No ######
     -- graph_esp tem todos as especificaçoes de no e seus vizinhos
     graph_esp = [z | z <- pre, length z == 3]
     -- nodes é um dicionario de quadruplas no formato (valor da distancia, no, no anterior, cor)
     -- nub remove repetições, mantendo só 1 elemento
-    origem = nub $ map head graph_esp
-    dest = nub $ map head $ map tail graph_esp
-    list_nodes = nub $ origem ++ dest
-    -- nodes = get_nodes (map head graph_esp) 0
-    nodes = new_get_nodes list_nodes $ head path
+    origens = nub $ map head graph_esp
+    destinos = nub $ map head $ map tail graph_esp
+    list_nodes = nub $ origens ++ destinos
+    -- cria lista de quadruplas
+    nodes = new_get_nodes list_nodes origem
     -- list_graph mosta uma lista no formato [[[("no1",0)],[vizinhos de "no1"]],[[("no2",0)],[vizinhos de "no2"]]...]
     list_graph = pre_graph nodes graph_esp
     -- graph é uma lista do grafo na estrutura No (acima)
     graph =  create_record list_graph
     -- final é a aplicação do djikstra, lol
-    final = dijkstra (head path) graph nodes
-  print final
-  print [('a',0),('b',1),('c',2),('d',3),('e',4),('f',5),('g',6),('h',7)]
+    pos_dijkstra = dijkstra origem graph nodes
+    final_path = obtain_path pos_dijkstra origem destino
+    cost = fst4 $ get_control pos_dijkstra destino
+    caminho = unwords final_path
+    -- when (not $ null final_path) $ do
+    if (head final_path) == "nada"
+      then do
+        putStrLn("inical: " ++ origem)
+        putStrLn("final: " ++ destino)
+        putStrLn("nada")
+        else do
+          putStrLn("inical: " ++ origem)
+          putStrLn("final: " ++ destino)
+          putStr("custo: ")
+          print cost
+          putStrLn(caminho)
+    -- putStr("naoseicaralho")
 
 -- pega a entrada no formato ["a b 4"] e passa pra ["a","b","4"]
 getlist::[String] -> [[String]]
@@ -50,11 +66,11 @@ getlist (x:xs) =
 -- monta a lista da struct No
 create_record [] = []
 create_record lista =
-    No node vizinhos 'C' : create_record (tail lista)
+    No node vizinhos : create_record (tail lista)
     where
       node = fst ( head ( head ( head lista)))
       vizinhos_pre = head ( tail ( head lista))
-      vizinhos = if vizinhos_pre == [] then [("fk", 0)] else vizinhos_pre
+      vizinhos = if vizinhos_pre == [] then [("fksgsdg", 0)] else vizinhos_pre
 
 -- Organiza os valores pra por no grafo
 pre_graph [] _ = []
@@ -78,6 +94,18 @@ new_get_nodes (x:xs) begin_node =
   else (1/0, x, "nd", 'C'):new_get_nodes xs begin_node
 
 
+obtain_path::[(Float, String, String, Char)] -> String -> String -> [String]
+obtain_path _ _ "nd" = ["nada"]
+obtain_path control origin destiny =
+  if node /= origin then obtain_path control origin next_step ++ [node]
+  else [node]
+  where
+    control_node = get_control control destiny
+    dist = fst4 control_node
+    node = snd4 control_node
+    next_step = trd4 control_node
+
+
 -- ######################### FUNCOES DIJKSTRA ############################
 
 --  ESTRUTURA DA QUADRUPLA DO DICIONARIO
@@ -85,11 +113,9 @@ new_get_nodes (x:xs) begin_node =
 -- Exemplo: grafo a -- 4.0 --> b -- 5.2 --> c = [(-1,"a","nd",'C'),(4.0,"b","a",'C'),(9.2,"c","b",'C')]
 
 -- retorna lista de valores de vizinhos e distancias
-getViz (No _ vizinhos _) = vizinhos
+getViz (No _ vizinhos) = vizinhos
 -- retorna o no
-getNode (No node _ _) = node
--- retorna a cor, possivelmente inutil
-getColor (No _ _ color) = color
+getNode (No node _) = node
 
 -- nao existe implementada no sistema pra quadrupla
 fst4 (x, _, _, _) = x
@@ -97,19 +123,18 @@ snd4 (_, x, _, _) = x
 trd4 (_, _, x, _) = x
 qth4 (_, _, _, x) = x
 
-
 -- retorna a struct de um no especifico (record é struct em haskell)
 get_record:: [No] -> String -> No
-get_record [] _ = No "naoAchouSeuNo" [] 'N'
+get_record [] _ = No "naoAchouSeuNo" []
 get_record (x:xs) node =
   if getNode x == node then x
   else get_record xs node
 
 -- busca no controle/"dicionario", retornando o correpondente de quadrupla do dado nó
-get_quad::[(Float, String, String, Char)] -> String -> (Float, String, String, Char)
-get_quad [] _ = (-2.0, "justNothin","",'N')
-get_quad (x:xs) node =
-  if node == snd4 x then x else get_quad xs node
+get_control::[(Float, String, String, Char)] -> String -> (Float, String, String, Char)
+get_control [] _ = (-2.0, "justNothin","",'N')
+get_control (x:xs) node =
+  if node == snd4 x then x else get_control xs node
 
 -- função que coordena as outras
 -- No de inicio/No a ser iterado -> Lista das structs -> Lista de controle/"Dicionario"
@@ -118,7 +143,7 @@ dijkstra [] _ control = control
 dijkstra node_init graph control =
   dijkstra new_node graph new_neighbors
   where
-    node = get_quad control node_init
+    node = get_control control node_init
     neighbors = getViz $ get_record graph node_init
     new_node = if check_node /= (-2,"","",'N') then snd4 check_node else []
     check_node = next_node control
@@ -157,8 +182,6 @@ update_paths (x:xs) neighbor dist_neighbor from
     current_node = snd4 x
     -- chk_dist = if pre_dist == 1/0 then  dist_neighbor else dist_neighbor + pre_dist
     chk_dist = dist_neighbor + pre_dist
-
-
 
 -- pega o proximo nó para o algoritomo analisar os vizinhos
 -- ou seja, procura o menor valor no dicionario que não seja Branco
