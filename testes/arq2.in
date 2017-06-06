@@ -1,0 +1,26 @@
+ax b 4
+b ax 4
+ax c 3
+c ax 3
+ax e 7
+e ax 7
+b d 5
+d b 5
+b c 6
+c b 6
+c d 11
+d c 11
+c e 8
+e c 8
+d f 2
+f d 2
+d e 2
+e d 2
+d g 10
+g d 10
+e g 5
+g e 5
+f g 3
+g f e
+ax
+f

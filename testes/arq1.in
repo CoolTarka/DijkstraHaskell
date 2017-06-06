@@ -1,0 +1,20 @@
+a   b   4.4
+b   a   4
+b   c   5
+c   b   5
+a   c   10
+c   a   10
+c   d   12
+d   c   12   
+b   d   3
+d   b   3
+d   e   7
+e   d   7
+c   e   16
+e   c   16
+e   a   15
+a   e   15
+b   e   11
+e   b   11
+a
+d
