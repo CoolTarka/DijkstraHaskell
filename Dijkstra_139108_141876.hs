@@ -11,11 +11,10 @@ import Control.Monad
 data No = No {
   nome::String,
   vizinhos::[(String,Float)]
-  -- cor::Char
 } deriving(Show, Read)
 
 main = do
-  file <- openFile "testes/teste0.in" ReadMode
+  file <- openFile "testes/arq1.in" ReadMode
   entrada <- hGetContents file
   let
     pre =  map words $ lines entrada
@@ -44,7 +43,7 @@ main = do
     cost = fst4 $ get_control pos_dijkstra destino
     caminho = unwords final_path
     -- when (not $ null final_path) $ do
-    in 
+    in
 	  if (head final_path) == "nada"
       then do
         putStrLn("inical: " ++ origem)
@@ -56,7 +55,7 @@ main = do
         putStr("custo: ")
         print cost
         putStrLn(caminho)
-    -- putStr("naoseicaralho")
+
 
 -- pega a entrada no formato ["a b 4"] e passa pra ["a","b","4"]
 getlist::[String] -> [[String]]
@@ -64,7 +63,7 @@ getlist [] = []
 getlist (x:xs) =
   words x : getlist xs
 
--- monta a lista da struct No
+-- monta a lista da struct No, para nós sem vizinhos cria um vizinho coringa para manter o funcionamento do codigo.
 create_record [] = []
 create_record lista =
     No node vizinhos : create_record (tail lista)
@@ -172,7 +171,6 @@ update_paths (x:xs) neighbor dist_neighbor from
       if chk_dist < current_dist then (chk_dist, current_node, from_node, current_color) : update_paths xs neighbor dist_neighbor from
       else (current_dist, current_node, current_orign, current_color) : update_paths xs neighbor dist_neighbor from
   | current_node == from_node && current_color /= 'B' = (current_dist, current_node, current_orign, 'B') : update_paths xs neighbor dist_neighbor from
-  -- | current_node == neighbor = (chk_dist, current_node, from_node, current_color) : update_paths xs neighbor dist_neighbor from
   | otherwise =  x:update_paths xs neighbor dist_neighbor from
   where
     current_orign = trd4 x
