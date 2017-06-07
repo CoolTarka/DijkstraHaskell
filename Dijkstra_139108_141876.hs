@@ -7,6 +7,7 @@ import Data.List
 import Data.Function
 import Data.Ord
 import Control.Monad
+import Data.Char
 
 data No = No {
   nome::String,
@@ -14,8 +15,8 @@ data No = No {
 } deriving(Show, Read)
 
 main = do
-  file <- openFile "testes/arq1.in" ReadMode
-  entrada <- hGetContents file
+  -- file <- openFile "testes/arq2.in" ReadMode
+  entrada <- getContents
   let
     pre =  map words $ lines entrada
     -- pre =  getlist $ lines entrada
